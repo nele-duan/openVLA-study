@@ -16,9 +16,9 @@ Each experiment folder has its own README with the full pipeline, requirements, 
 
 ## Preview
 
-![rollout](experiments/01-zero-shot-reproduction/rollout.gif)
+![rollout](experiments/02-finetuned-evaluation/rollout.gif)
 
-_Experiment 01: zero-shot closed-loop rollout on a LIBERO `libero_spatial` task._
+_Experiment 02: the official finetuned checkpoint successfully completing a LIBERO `libero_spatial` task (`pick up the black bowl ... and place it on the plate`)._
 
 ## Repository Layout
 
