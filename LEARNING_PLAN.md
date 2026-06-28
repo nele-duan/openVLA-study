@@ -18,8 +18,8 @@
 
 ## 👉 RESUME HERE
 
-> **下一步:Phase 2 收尾 —— 只剩 prompt 模板 `In: What action...? Out:` ↔ tokenizer 对应关系(一个短 notebook)。做完即进 Phase 3(LoRA,上 A100 80GB)。**
-> 🔄 Phase 2 进行中:Exp 03 已完成 ①动作 tokenization(`action_tokenization.ipynb`)+ ②视觉双编码器(`vision_encoders.ipynb`)。本地 `.venv` 已配齐(numpy/transformers/torch/timm,纯 CPU)。
+> **下一步:Phase 3 —— 自己做 LoRA 微调(需 GPU,计划 RunPod 1× A100 80GB)。Phase 2 已全部完成。**
+> ✅ Phase 2 完成:Exp 03 三个 notebook 全跑通 —— ①动作 tokenization(`action_tokenization.ipynb`)②视觉双编码器(`vision_encoders.ipynb`)③prompt 模板↔tokenizer(`prompt_template.ipynb`)。本地 `.venv` 已配齐(numpy/transformers/torch/timm,纯 CPU)。
 > ✅ Phase 1 完成:Exp 02 官方 finetuned checkpoint 评测 = **62/73 = 84.9%**(libero_spatial),≈ 官方 84.7%,复现成功。README 已收尾。
 > 待办(可选):把 RunPod 上的 `rollout.gif` 下载放进 `experiments/02-finetuned-evaluation/`(README 已引用)。
 >
@@ -42,7 +42,7 @@
 | --- | --- | --- |
 | 0 | 零样本复现（Exp 01） | ✅ Done |
 | 1 | 跑通并读懂「评测」（Exp 02） | ✅ Done（84.9%) |
-| 2 | 架构内部原理（读论文 + 拆代码） | 🔄 进行中（动作侧 + 视觉侧已拆，剩 prompt 模板） |
+| 2 | 架构内部原理（读论文 + 拆代码） | ✅ Done（动作/视觉/prompt 三个 notebook 全跑通） |
 | 3 | 自己做 LoRA finetune（Exp 03） | ⬜ 未开始 |
 | 4 | 对比与消融 | ⬜ 未开始 |
 | 5 | 拓展（新任务 / OFT） | ⬜ 未开始 |
@@ -89,7 +89,7 @@
 - [x] 亲手把一个动作向量 encode 成 token、再 decode 回来,验证往返一致(官方 ActionTokenizer 对账一致,token 落 31744–31999)
 - [x] 确认**视觉编码器** = SigLIP + DINOv2 双编码器特征拼接;看 patch 数、特征维度(`vision_encoders.ipynb`:256 patch × (1024+1152)=2176)
 - [x] 确认 **backbone** = Llama-2 7B,动作预测本质是**自回归 token 预测**(不是回归头)
-- [ ] 把 prompt 模板 `In: What action should the robot take to {instruction}?\nOut:` 和 tokenizer 对应关系理清 ← **下一步**
+- [x] 把 prompt 模板 `In: What action should the robot take to {instruction}?\nOut:` 和 tokenizer 对应关系理清(`prompt_template.ipynb`:20 个文字 token,小 id 区,与动作尾部 31744–31999 互不重叠;`Out:` 后接 7 个动作 token)
 
 **学完要能讲清楚**
 - [x] 为什么能用「LM 生成 token」输出连续机器人动作?(离散化 + 复用低频 token + 自回归协调)
@@ -160,3 +160,4 @@
 - 2026-06-13 — 正式跑(10/task,seed 7)中途 kernel 断,跑到 73 ep = **84.9%**,≈ 官方 84.7%。教训:长跑批要在 JupyterLab 终端用 `nohup ... &` 脱离 kernel,`tail -f` 看 log。
 - 2026-06-13 — ✅ **Phase 1 完成**。决定不重跑(73 ep 够),84.9% 定为 Exp 02 结果。Exp 02 README 已写完(setup + 对比表 + 坑链 + takeaways)。待办:下载 rollout.gif。下一步:Phase 2 或 3。
 - 2026-06-28 — 开 Phase 2。建 `experiments/03-architecture-deepdive/` + 本地 `.venv`(纯 CPU,不用 GPU)。① 动作 tokenization notebook 跑通:手写 256-bin 逻辑与官方 ActionTokenizer 对账一致,token 落 31744–31999,量化误差 < 半格宽。② 视觉双编码器 notebook 跑通(timm 加载 DINOv2 ViT-L/14 + SigLIP SO400M/14 @224):各 256 patch,DINOv2 1024-d(带 5 个 cls/register 前缀,切掉)+ SigLIP 1152-d → 拼成 256×2176。教训:DINOv2 默认 518px 要强制 224。下一步:prompt 模板 ↔ tokenizer,收尾 Phase 2。
+- 2026-06-28 — ✅ **Phase 2 完成**。③ prompt 模板 notebook 跑通:`In: What action...? \nOut:` + 指令 = 20 个文字 token(含 `<s>` BOS),全是小 id(常用区),与动作 token 尾部 31744–31999 互不重叠;`bowl`→`bow`+`l` 子词切分;完整输入 = 256 视觉 token + 20 文字 token = 276,读完从 `Out:` 后吐 7 个动作 token。整条「图+文→动作」链路打通。下一步:Phase 3 LoRA(RunPod A100 80GB)。

@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | (1) Action tokenization round-trip | `action_tokenization.ipynb` | ✅ |
 | (2) Vision encoders: SigLIP + DINOv2 | `vision_encoders.ipynb` | ✅ |
-| (3) Prompt template ↔ tokenizer mapping | _TODO_ | ⬜ |
+| (3) Prompt template ↔ tokenizer mapping | `prompt_template.ipynb` | ✅ |
 
 ## (1) Action Tokenization — Key Takeaways
 
@@ -56,3 +56,27 @@ image (224x224)  ->  patch 14  ->  16x16 = 256 patches per encoder
 - **DINOv2 detail**: it defaults to 518px; OpenVLA forces it to 224 so both grids line up. It also emits 5 prefix tokens (1 cls + 4 registers) before the 256 patch tokens, which we slice off.
 
 Runs on **CPU** (one image, a few seconds). Needs `pip install torch timm pillow`.
+
+## (3) Prompt Template ↔ Tokenizer — Key Takeaways
+
+The text fed to Llama is always wrapped in a fixed template; only `{instruction}` varies:
+
+```
+In: What action should the robot take to {instruction}?
+Out:
+```
+
+- Tokenizing `...pick up the black bowl?\nOut:` gives **20 tokens** (incl. the auto `<s>` BOS). All **low ids** (normal vocab) — disjoint from the action tokens' `31744~31999` tail. Same 32000 vocab, different regions.
+- Sub-word splitting is visible: `bowl` → `bow` + `l`; even `\n` is its own token.
+- `Out:` is the **handoff** — the model generates 7 action tokens right after it.
+- Full inference input = `[256 visual tokens] ++ [~20 text tokens]` = ~276 tokens read, then 7 action tokens written.
+
+Tokenizer only — no model, no GPU.
+
+### End-to-end pipeline (Phase 2 complete)
+
+```
+image ─→ SigLIP+DINOv2 ─→ 256 visual tokens ┐
+                                             ├─→ Llama-2 ─→ 7 action tokens ─→ decode (256-bin) ─→ robot action
+instruction ─→ prompt template ─→ text tokens ┘
+```
