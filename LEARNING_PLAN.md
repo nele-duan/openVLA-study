@@ -18,7 +18,8 @@
 
 ## 👉 RESUME HERE
 
-> **下一步:Phase 3 —— 自己做 LoRA 微调(需 GPU,计划 RunPod 1× A100 80GB)。Phase 2 已全部完成。**
+> **下一步:Phase 3 —— 自己做 LoRA 微调(需 GPU)。详细 runbook 已写好:`experiments/04-lora-finetune/README.md`,下次开工照着敲。计划 RunPod 1× A100 80GB。Phase 2 已全部完成。**
+> 📋 Phase 3 开工三件事:① `git clone hf.co:datasets/openvla/modified_libero_rlds`(~10GB,现成 RLDS,不用手动转);② `vla-scripts/finetune.py` 跑 LoRA r=32(先 `--max_steps 5000` 看 loss 下降);③ 复用 Exp 02 评测脚本(改 `--pretrained_checkpoint`)做三方对比。开工待定:步数预算 / batch 8+accum2 vs 16 / wandb 开关。
 > ✅ Phase 2 完成:Exp 03 三个 notebook 全跑通 —— ①动作 tokenization(`action_tokenization.ipynb`)②视觉双编码器(`vision_encoders.ipynb`)③prompt 模板↔tokenizer(`prompt_template.ipynb`)。本地 `.venv` 已配齐(numpy/transformers/torch/timm,纯 CPU)。
 > ✅ Phase 1 完成:Exp 02 官方 finetuned checkpoint 评测 = **62/73 = 84.9%**(libero_spatial),≈ 官方 84.7%,复现成功。README 已收尾。
 > 待办(可选):把 RunPod 上的 `rollout.gif` 下载放进 `experiments/02-finetuned-evaluation/`(README 已引用)。
@@ -101,13 +102,16 @@
 
 ---
 
-## ⬜ Phase 3 — 自己做 LoRA Finetuning（原 Exp 03）
+## ⬜ Phase 3 — 自己做 LoRA Finetuning（= Exp 04）
+
+> 📋 **完整 runbook(可照敲命令 + 开工决策)见 `experiments/04-lora-finetune/README.md`。** 下面是要点。
 
 **做什么**
-- [ ] 准备数据:一个 LIBERO 任务的 demo → 转成 OpenVLA 训练要的 **RLDS** 格式
-- [ ] 配 LoRA:`r` / `alpha` / target modules,记下可训练参数占比
-- [ ] 跑训练,记录:显存、单 step 耗时、总时长、loss 曲线
-- [ ] 用**自己训的 checkpoint** 跑 Phase 1 同一套评测 → 做零样本 / 别人 finetune / 自己 LoRA 三方对比
+- [ ] 准备数据:**直接下载官方现成 RLDS**(`git clone hf.co:datasets/openvla/modified_libero_rlds`,~10GB,含 spatial/object/goal/10),不用手动转
+- [ ] 配 LoRA:官方默认 `r=32` / `dropout=0` / `lr=5e-4`;记下可训练参数占比(看 finetune.py 启动 log)
+- [ ] 跑训练(`torchrun ... vla-scripts/finetune.py`),记录:显存、单 step 耗时、总时长、loss 曲线;先 `--max_steps 5000` 验证能学,再考虑长跑
+- [ ] 用**自己训的 checkpoint** 跑 **Exp 02 同一套评测**(改 `--pretrained_checkpoint`)→ 零样本 / 官方 finetune / 自己 LoRA 三方对比
+- [ ] 注意:LoRA 每次 save 会 `merge_and_unload` 合并进 base 并写出 `dataset_statistics.json`(评测反归一化要用)
 
 **学完要能讲清楚**
 - [ ] LoRA 改了哪些层?为什么只训这些就够?
