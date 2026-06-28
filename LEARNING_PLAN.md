@@ -12,15 +12,19 @@
 3. 一个 Phase 全部勾完,就把 **RESUME HERE** 指针移到下一个 Phase 的第一项,并更新顶部状态表。
 4. 规则:**勾选 = 已验证能跑/能讲清楚**,不是「大概做了」。
 
-最后更新:2026-06-13
+最后更新:2026-06-28
 
 ---
 
 ## 👉 RESUME HERE
 
-> **下一步:Phase 2（架构原理)或 Phase 3（LoRA 训练)二选一。Phase 1 已完成。**
+> **下一步:Phase 2 收尾 —— 只剩 prompt 模板 `In: What action...? Out:` ↔ tokenizer 对应关系(一个短 notebook)。做完即进 Phase 3(LoRA,上 A100 80GB)。**
+> 🔄 Phase 2 进行中:Exp 03 已完成 ①动作 tokenization(`action_tokenization.ipynb`)+ ②视觉双编码器(`vision_encoders.ipynb`)。本地 `.venv` 已配齐(numpy/transformers/torch/timm,纯 CPU)。
 > ✅ Phase 1 完成:Exp 02 官方 finetuned checkpoint 评测 = **62/73 = 84.9%**(libero_spatial),≈ 官方 84.7%,复现成功。README 已收尾。
 > 待办(可选):把 RunPod 上的 `rollout.gif` 下载放进 `experiments/02-finetuned-evaluation/`(README 已引用)。
+>
+> **学习方式备注**:用「老师讲解 + 苏格拉底式提问 + 亲手跑小 notebook」推进,讲完一段出题验收。已啃透:动作=自回归 token 预测/256 bin/argmax/为什么恒 7 个/双视觉编码器(SigLIP 语义 + DINOv2 几何)。
+> **Phase 3 GPU 选型**:RunPod `1× A100 80GB`(和 Exp 02 同 Ampere 架构,flash-attn==2.5.5 环境直接复用,免重配)。省钱备选 L40S/A6000 48GB。
 
 ### 🐛 已定位的根因:eager attention 导致 off-by-one,模型从不产出动作
 
@@ -38,7 +42,7 @@
 | --- | --- | --- |
 | 0 | 零样本复现（Exp 01） | ✅ Done |
 | 1 | 跑通并读懂「评测」（Exp 02） | ✅ Done（84.9%) |
-| 2 | 架构内部原理（读论文 + 拆代码） | ⬜ 未开始 |
+| 2 | 架构内部原理（读论文 + 拆代码） | 🔄 进行中（动作侧 + 视觉侧已拆，剩 prompt 模板） |
 | 3 | 自己做 LoRA finetune（Exp 03） | ⬜ 未开始 |
 | 4 | 对比与消融 | ⬜ 未开始 |
 | 5 | 拓展（新任务 / OFT） | ⬜ 未开始 |
@@ -81,16 +85,17 @@
 > ⚠️ 故意排在「自己训练」之前 —— 否则训练时模型对你是黑箱。
 
 **做什么**
-- [ ] 打印 OpenVLA 的**动作 tokenization**:7-DoF 连续动作 → 256 bin → 映射到 Llama 词表中 256 个最少用 token
-- [ ] 亲手把一个动作向量 encode 成 token、再 decode 回来,验证往返一致
-- [ ] 确认**视觉编码器** = SigLIP + DINOv2 双编码器特征拼接;看 patch 数、特征维度
-- [ ] 确认 **backbone** = Llama-2 7B,动作预测本质是**自回归 token 预测**(不是回归头)
-- [ ] 把 prompt 模板 `In: What action should the robot take to {instruction}?\nOut:` 和 tokenizer 对应关系理清
+- [x] 打印 OpenVLA 的**动作 tokenization**:7-DoF 连续动作 → 256 bin → 映射到 Llama 词表中 256 个最少用 token(`action_tokenization.ipynb`)
+- [x] 亲手把一个动作向量 encode 成 token、再 decode 回来,验证往返一致(官方 ActionTokenizer 对账一致,token 落 31744–31999)
+- [x] 确认**视觉编码器** = SigLIP + DINOv2 双编码器特征拼接;看 patch 数、特征维度(`vision_encoders.ipynb`:256 patch × (1024+1152)=2176)
+- [x] 确认 **backbone** = Llama-2 7B,动作预测本质是**自回归 token 预测**(不是回归头)
+- [ ] 把 prompt 模板 `In: What action should the robot take to {instruction}?\nOut:` 和 tokenizer 对应关系理清 ← **下一步**
 
 **学完要能讲清楚**
-- [ ] 为什么能用「LM 生成 token」输出连续机器人动作?(离散化 + 复用低频 token)
-- [ ] 256 bin 怎么切?(动作分布 1st–99th 百分位归一化后均匀分箱)
-- [ ] 为什么要双视觉编码器?(SigLIP 语义 + DINOv2 空间几何)
+- [x] 为什么能用「LM 生成 token」输出连续机器人动作?(离散化 + 复用低频 token + 自回归协调)
+- [x] 256 bin 怎么切?(归一化到 [-1,1] 后 `np.linspace` 均匀分箱;decode 取格子中点)
+- [x] 为什么要双视觉编码器?(SigLIP 语义「是什么」 + DINOv2 空间几何「在哪/怎么抓」)
+- [x] 附带:argmax=取位置;生成恒 7 个 token(数量由代码 `range(7)` 定、内容由微调定);compounding error
 
 **参考**:OpenVLA 论文(architecture / action tokenization 节);Prismatic VLM;代码 `prismatic/`
 
@@ -154,3 +159,4 @@
 - 2026-06-13 — ✅ 评测跑通!smoke test(每任务 1 条)9/10 = 90%,与官方 ~85% 吻合,确认复现成功。osmesa 慢(3.3min/ep)。下一步:换 egl,跑每任务 ≥10 条拿稳定数字。
 - 2026-06-13 — 正式跑(10/task,seed 7)中途 kernel 断,跑到 73 ep = **84.9%**,≈ 官方 84.7%。教训:长跑批要在 JupyterLab 终端用 `nohup ... &` 脱离 kernel,`tail -f` 看 log。
 - 2026-06-13 — ✅ **Phase 1 完成**。决定不重跑(73 ep 够),84.9% 定为 Exp 02 结果。Exp 02 README 已写完(setup + 对比表 + 坑链 + takeaways)。待办:下载 rollout.gif。下一步:Phase 2 或 3。
+- 2026-06-28 — 开 Phase 2。建 `experiments/03-architecture-deepdive/` + 本地 `.venv`(纯 CPU,不用 GPU)。① 动作 tokenization notebook 跑通:手写 256-bin 逻辑与官方 ActionTokenizer 对账一致,token 落 31744–31999,量化误差 < 半格宽。② 视觉双编码器 notebook 跑通(timm 加载 DINOv2 ViT-L/14 + SigLIP SO400M/14 @224):各 256 patch,DINOv2 1024-d(带 5 个 cls/register 前缀,切掉)+ SigLIP 1152-d → 拼成 256×2176。教训:DINOv2 默认 518px 要强制 224。下一步:prompt 模板 ↔ tokenizer,收尾 Phase 2。
