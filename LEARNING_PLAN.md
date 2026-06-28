@@ -20,6 +20,7 @@
 
 > **下一步:Phase 3 —— 自己做 LoRA 微调(需 GPU)。详细 runbook 已写好:`experiments/04-lora-finetune/README.md`,下次开工照着敲。计划 RunPod 1× A100 80GB。Phase 2 已全部完成。**
 > 📋 Phase 3 开工三件事:① `git clone hf.co:datasets/openvla/modified_libero_rlds`(~10GB,现成 RLDS,不用手动转);② `vla-scripts/finetune.py` 跑 LoRA r=32(先 `--max_steps 5000` 看 loss 下降);③ 复用 Exp 02 评测脚本(改 `--pretrained_checkpoint`)做三方对比。开工待定:步数预算 / batch 8+accum2 vs 16 / wandb 开关。
+> 🗓️ **计划开工:2026-07-03(周五)或 07-04(周六)下午**。下午配环境+下数据+smoke test(清醒时干),稳了挂 nohup 过夜训练,次日早上评测。预算 ~$20–30;`--max_steps` 调到约等于睡眠时长(~3s/step → 8h≈1万步);训完自动关机别空转计费。第一晚别追 85%,先跑通流程拿到自己的数。
 > ✅ Phase 2 完成:Exp 03 三个 notebook 全跑通 —— ①动作 tokenization(`action_tokenization.ipynb`)②视觉双编码器(`vision_encoders.ipynb`)③prompt 模板↔tokenizer(`prompt_template.ipynb`)。本地 `.venv` 已配齐(numpy/transformers/torch/timm,纯 CPU)。
 > ✅ Phase 1 完成:Exp 02 官方 finetuned checkpoint 评测 = **62/73 = 84.9%**(libero_spatial),≈ 官方 84.7%,复现成功。README 已收尾。
 > 待办(可选):把 RunPod 上的 `rollout.gif` 下载放进 `experiments/02-finetuned-evaluation/`(README 已引用)。

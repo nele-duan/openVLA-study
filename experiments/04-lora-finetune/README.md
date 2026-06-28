@@ -107,6 +107,52 @@ Same protocol as Exp 02 (same suite, same seed, same success predicate) → the 
 
 ---
 
+## 7. Scheduling, cost & the overnight pattern
+
+**Planned start: Friday/Saturday afternoon.** Afternoon start is ideal — the risky setup happens
+while awake/in daylight, and the long unattended training rolls into the evening/overnight.
+
+### Cost estimate (RunPod A100-80GB, ~$1.7/hr; community/spot ~half)
+
+| stage | rough time | rough cost |
+| --- | --- | --- |
+| env + data download (~10GB) + smoke test | 1–2 hr | ~$2–4 |
+| short "does-it-learn" run (5k steps) | 3–5 hr | ~$6–10 |
+| eval (Exp 02 harness, egl, ~100 episodes) | 1–2 hr | ~$2–4 |
+| **subtotal: full pipeline + my own number** | **~6–9 hr** | **≈ $15–25** |
+| optional long run toward ~85% (~20–30k steps) | 15–25 hr | ~$30–50 |
+
+Budget **~$20–30** for a comfortable Phase 3. The single biggest unknown is **seconds/step** —
+measure it in the first ~100 steps and extrapolate (don't trust the estimate above blindly).
+
+### The overnight pattern (do NOT launch-and-sleep)
+
+The first 1–2 hr (env, flash-attn, dataset name, OOM) is where things break — do it **awake**.
+
+```
+🌅 Afternoon (awake, ~1.5 hr):
+   1. env + download data (~10GB)
+   2. smoke test: run a few dozen steps, confirm loss prints, no crash, VRAM ok
+   3. only once it's clearly running → launch the long run with nohup, then leave it
+      (watch until loss is actually dropping before walking away)
+
+🌙 Evening/overnight (unattended): training runs
+
+🌅 Next morning (awake, ~1–2 hr): training done → run eval → fill the table in §5
+```
+
+Two money-savers:
+- **Size `--max_steps` to your unattended window.** ~3 s/step → ~10k steps in ~8 hr. Set
+  `--max_steps 10000` so it finishes around when you return (5k finishes in ~4 hr — fine for an afternoon).
+- **Auto-stop the pod when done** so it doesn't idle-bill while you sleep. Append a stop command
+  after training (e.g. `runpodctl stop pod $RUNPOD_POD_ID` or `poweroff`). A pod idling 5 hr ≈ wasted ~$8.
+
+**First run: don't chase 85%.** Goal is a clean pipeline + loss visibly dropping + a few sane
+rollouts. Even 60–70% (with "lower because fewer steps" understood) is a successful Phase 3.
+Chase the full number in a separate, longer launch later.
+
+---
+
 ## Open decisions to make at kickoff
 1. **Step budget**: short "does-it-learn" 5k run first, or commit to a longer ~overnight run straight away?
 2. **batch_size 8+accum2 vs 16**: depends on observed VRAM headroom on the A100.
